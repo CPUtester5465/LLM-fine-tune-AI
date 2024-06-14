@@ -17,14 +17,14 @@ The training and test datasets used in this project are:
 ## Requirements
 
 To run the scripts in this repository, you need the following libraries:
-
+```
 plaintext
 torch>=1.9.0
 transformers>=4.10.0
 datasets>=1.11.0
 sentencepiece
 huggingface-cli
-
+```
 
 ```
 pip install -r requirements.txt
