@@ -1,0 +1,3 @@
+I develop project in python.
+Main idea of project:
+We have model that use in its own pipeline of answer genegetion various of modules to create app with its own enviroment using acces keys from cloud, provisors, repos and etc. Investipate, planning,  decomposing, manage, code-generation,  testing, optimizing, integration in final env. More than that this structure has to create its own modules to cover any souce of indormation and perform any kind of task.

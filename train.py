@@ -1,7 +1,11 @@
 import os
+import logging
 from datasets import load_dataset, DatasetDict, load_from_disk
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, AutoConfig
 import torch
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define paths
 dataset_path = "./datasets"
@@ -17,10 +21,10 @@ except ImportError:
 # Function to check if the dataset exists and list its contents
 def check_and_list_dataset_files(dataset_dir):
     if os.path.exists(dataset_dir) and len(os.listdir(dataset_dir)) > 0:
-        print(f"Contents of {dataset_dir}:")
+        logging.info(f"Contents of {dataset_dir}:")
         for file_name in os.listdir(dataset_dir):
             file_path = os.path.join(dataset_dir, file_name)
-            print(f"  {file_name} - Size: {os.path.getsize(file_path)} bytes")
+            logging.info(f"  {file_name} - Size: {os.path.getsize(file_path)} bytes")
         return True
     return False
 
@@ -48,12 +52,15 @@ def download_datasets():
 
     for dataset_info in datasets_info:
         if not check_and_list_dataset_files(dataset_info["path"]):
-            print(f"Downloading dataset {dataset_info['name']}...")
-            dataset = load_dataset(dataset_info['name'])
-            dataset.save_to_disk(dataset_info["path"])
-            print(f"Dataset {dataset_info['name']} downloaded and saved to {dataset_info['path']}")
+            logging.info(f"Downloading dataset {dataset_info['name']}...")
+            try:
+                dataset = load_dataset(dataset_info['name'])
+                dataset.save_to_disk(dataset_info["path"])
+                logging.info(f"Dataset {dataset_info['name']} downloaded and saved to {dataset_info['path']}")
+            except Exception as e:
+                logging.error(f"Error downloading {dataset_info['name']}: {e}")
         else:
-            print(f"Dataset {dataset_info['name']} already exists at {dataset_info['path']}")
+            logging.info(f"Dataset {dataset_info['name']} already exists at {dataset_info['path']}")
 
 download_datasets()
 
@@ -72,6 +79,7 @@ def load_and_inspect_datasets():
 datasets = load_and_inspect_datasets()
 
 # Initialize tokenizer and model
+logging.info("Initializing tokenizer and model...")
 tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)  # Use the slow tokenizer
 
 # Load model configuration and remove quantization settings
@@ -84,6 +92,7 @@ model = AutoModelForSequenceClassification.from_pretrained(model_path, config=co
 
 # Tokenize datasets
 def tokenize_and_format_datasets(datasets):
+    logging.info("Tokenizing and formatting datasets...")
     for dataset_name, dataset_info in datasets.items():
         columns = dataset_info["columns"]
         text_key = None
@@ -113,10 +122,12 @@ def tokenize_and_format_datasets(datasets):
 tokenize_and_format_datasets(datasets)
 
 # Combine datasets into training and evaluation sets
+logging.info("Combining datasets into training and evaluation sets...")
 train_dataset = torch.utils.data.ConcatDataset([dataset_info["data"]['train'] for dataset_info in datasets.values() if 'train' in dataset_info["data"]])
 eval_dataset = torch.utils.data.ConcatDataset([dataset_info["data"]['test'] for dataset_info in datasets.values() if 'test' in dataset_info["data"]])
 
 # Training arguments with reduced batch size and mixed precision
+logging.info("Setting up training arguments...")
 training_args = TrainingArguments(
     output_dir=output_dir,
     evaluation_strategy="epoch",
@@ -129,6 +140,7 @@ training_args = TrainingArguments(
 )
 
 # Trainer
+logging.info("Initializing trainer...")
 trainer = Trainer(
     model=model,
     args=training_args,
@@ -137,5 +149,10 @@ trainer = Trainer(
 )
 
 # Train and evaluate
+logging.info("Starting training...")
 trainer.train()
+logging.info("Training completed.")
+
+logging.info("Starting evaluation...")
 trainer.evaluate()
+logging.info("Evaluation completed.")
